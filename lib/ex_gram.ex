@@ -18,7 +18,7 @@ defmodule ExGram do
   def new_conn(), do: new()
   def conn_put_path(conn, path), do: put_path(conn, path)
 
-  def start_link() do
+  def start_link(_arg) do
     Supervisor.start_link(__MODULE__, :ok)
   end
 
