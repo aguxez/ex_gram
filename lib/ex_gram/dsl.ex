@@ -3,7 +3,7 @@ defmodule ExGram.Dsl do
   alias ExGram.Responses
   alias ExGram.Responses.{Answer, AnswerCallback, EditInline, EditMarkup}
 
-  def answer(cnt, text), do: answer(cnt, text, [])
+  def answer(cnt, text, ops \\ [])
 
   def answer(cnt, text, ops) when is_binary(text) and is_list(ops) do
     Answer |> Responses.new(%{text: text, ops: ops}) |> add_answer(cnt)
@@ -15,12 +15,8 @@ defmodule ExGram.Dsl do
     Answer |> Responses.new(%{text: text, ops: ops}) |> Responses.set_msg(m) |> add_answer(cnt)
   end
 
-  def answer_callback(cnt, ops) do
-    AnswerCallback |> Responses.new(%{ops: ops}) |> add_answer(cnt)
-  end
-
-  def answer_callback(cnt, id, ops) do
-    AnswerCallback |> Responses.new(%{ops: ops}) |> Responses.set_msg(id) |> add_answer(cnt)
+  def answer_callback(cnt, msg, ops \\ []) do
+    AnswerCallback |> Responses.new(%{ops: ops}) |> Responses.set_msg(msg) |> add_answer(cnt)
   end
 
   # /3
@@ -114,8 +110,8 @@ defmodule ExGram.Dsl do
 
   def send_answers(%Cnt{answers: answers, name: name, halted: false} = cnt) do
     msg = extract_msg(cnt)
-    send_all_answers(answers, name, msg)
-    %{cnt | halted: true}
+    responses = send_all_answers(answers, name, msg)
+    %{cnt | responses: responses, halted: true}
   end
 
   defp add_answer(resp, %Cnt{answers: answers} = cnt) do
@@ -131,18 +127,32 @@ defmodule ExGram.Dsl do
 
   defp extract_msg(_), do: nil
 
-  defp send_all_answers([], _, _), do: :ok
+  defp send_all_answers(answers, name, msg), do: send_all_answers(answers, name, msg, [])
 
-  defp send_all_answers([{:response, response} | answers], name, msg) do
-    response
-    |> put_name_if_not(name)
-    |> ExGram.Responses.set_msg(msg)
-    |> ExGram.Responses.execute()
+  defp send_all_answers([], _, _, responses), do: responses
 
-    send_all_answers(answers, name, msg)
+  defp send_all_answers([{:response, answer} | answers], name, msg, responses) do
+    response =
+      answer
+      |> put_name_if_not(name)
+      |> ExGram.Responses.set_msg(msg)
+      |> ExGram.Responses.execute()
+
+    responses = responses ++ [response]
+
+    send_all_answers(answers, name, msg, responses)
   end
 
-  defp send_all_answers([_ | answers], name, msg), do: send_all_answers(answers, name, msg)
+  defp send_all_answers([answer | answers], name, msg, responses) do
+    error = %ExGram.Error{
+      code: :unknonwn_answer,
+      message: "Unknown answer: #{inspect(answer)}",
+      metadata: %{answer: answer}
+    }
+
+    responses = responses ++ [{:error, error}]
+    send_all_answers(answers, name, msg, responses)
+  end
 
   defp put_name_if_not(%{ops: ops} = base, name) when is_list(ops) do
     %{base | ops: put_name_if_not(ops, name)}

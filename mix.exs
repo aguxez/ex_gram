@@ -4,7 +4,7 @@ defmodule ExGram.Mixfile do
   def project do
     [
       app: :ex_gram,
-      version: "0.5.0-rc2",
+      version: "0.5.0-rc6",
       package: package(),
       description: description(),
       source_url: "https://github.com/rockneurotiko/ex_gram",
@@ -46,12 +46,12 @@ defmodule ExGram.Mixfile do
 
   defp deps do
     [
-      {:poison, "~> 2.1"},
+      {:poison, "~> 3.1"},
       {:maxwell, "~> 2.2.1"},
-      {:hackney, "~> 1.8.0"},
+      {:hackney, "~> 1.12.1"},
       {:dialyxir, "~> 0.5.0", only: [:dev], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:inch_ex, only: :docs}
+      {:inch_ex, ">= 0.0.0", only: :docs}
     ]
   end
 end

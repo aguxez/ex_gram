@@ -29,7 +29,7 @@ defmodule ExGram.Updates.Polling do
 
         send(self(), {:fetch, :update_id, nid + 1})
 
-      {:error, error} ->
+      {:error, _error} ->
         Process.send(self(), {:fetch, :update_id, uid}, [:nosuspend])
     end
 
